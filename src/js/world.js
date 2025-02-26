@@ -719,4 +719,6 @@ export default class EgyptianWorld {
 
         // Chest base
         const chestBase = new THREE.Mesh(chestBaseGeometry, chestMaterial);
+
         
+        // !! incomplete

@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as io from 'socket.io-client';
+import Player from '@js/player.js';
+import World from '@js/world.js';
+// import treasureImage from '@assets/treasure.png';
 
 class EgyptianTreasureHunt {
     constructor() {
