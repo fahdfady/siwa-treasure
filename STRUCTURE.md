@@ -32,6 +32,6 @@ siwa-treasure/
 │   └── gameState.js         # Server-side game state management
 │
 ├── package.json             # Project dependencies and scripts
-├── webpack.config.js        # Webpack configuration
+├── vite.config.js        # Webpack configuration
 ├── README.md                # Project documentation
 └── STRUCTURE.md             # Directory structure 
