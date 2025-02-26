@@ -1,4 +1,3 @@
-// src/js/world.js
 import * as THREE from 'three';
 
 export default class EgyptianWorld {
@@ -7,6 +6,7 @@ export default class EgyptianWorld {
         this.textureLoader = new THREE.TextureLoader();
         this.sandTexture = null;
         this.stoneTexture = null;
+        this.treasures = [];
 
         // Load textures
         this.loadTextures();
@@ -20,6 +20,7 @@ export default class EgyptianWorld {
         this.createStonePillars();
         this.createPalmTrees();
         this.createAmbientElements();
+        this.placeTreasures();
     }
 
     loadTextures() {
@@ -275,4 +276,447 @@ export default class EgyptianWorld {
         treeGroup.add(trunk);
 
         // Palm leaves
-        const leav
+        const leafMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2E8B57,
+            roughness: 0.7,
+            side: THREE.DoubleSide
+        });
+
+        // Create 6-8 leaves in a radial pattern at the top
+        const numLeaves = 6 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numLeaves; i++) {
+            const leafGroup = new THREE.Group();
+            leafGroup.position.y = 4;
+
+            // Create leaf geometry
+            const leafShape = new THREE.Shape();
+            leafShape.moveTo(0, 0);
+            leafShape.bezierCurveTo(0.2, 0.5, 0.5, 1.5, 0.5, 2.5);
+            leafShape.bezierCurveTo(0.3, 2.7, 0.2, 2.9, 0, 3);
+            leafShape.bezierCurveTo(-0.2, 2.9, -0.3, 2.7, -0.5, 2.5);
+            leafShape.bezierCurveTo(-0.5, 1.5, -0.2, 0.5, 0, 0);
+
+            const leafGeometry = new THREE.ShapeGeometry(leafShape);
+            const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+
+            // Rotate leaf to face outward
+            leaf.rotation.x = -Math.PI / 2;
+            leaf.rotation.z = (i / numLeaves) * Math.PI * 2;
+
+            // Add slight droop and randomize
+            leaf.rotation.y = Math.PI / 6 + Math.random() * 0.2;
+
+            // Scale the leaf
+            leaf.scale.set(1.5, 3.5, 1.5);
+
+            leafGroup.add(leaf);
+            treeGroup.add(leafGroup);
+        }
+
+        this.scene.add(treeGroup);
+    }
+
+    createPyramid() {
+        // Create a pyramid at (20, 0, 20)
+        const pyramidHeight = 15;
+        const pyramidBase = 20;
+        const pyramidGeometry = new THREE.ConeGeometry(pyramidBase, pyramidHeight, 4);
+        const pyramidMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xd0c090,
+            roughness: 0.7
+        });
+
+        const pyramid = new THREE.Mesh(pyramidGeometry, pyramidMaterial);
+        pyramid.position.set(20, pyramidHeight / 2, 20);
+        pyramid.rotation.y = Math.PI / 4; // Rotate to align base corners with axes
+        pyramid.castShadow = true;
+        pyramid.receiveShadow = true;
+        this.scene.add(pyramid);
+
+        // Add steps to the pyramid
+        const stepsCount = 5;
+        const stepWidth = 1;
+
+        for (let i = 0; i < stepsCount; i++) {
+            const stepSize = pyramidBase - (i * stepWidth * 2);
+            if (stepSize <= 0) continue;
+
+            const stepHeight = 0.5;
+            const stepY = (i * stepHeight);
+
+            const stepGeometry = new THREE.BoxGeometry(stepSize, stepHeight, stepSize);
+            const stepMaterial = new THREE.MeshStandardMaterial({
+                map: this.stoneTexture,
+                color: 0xd0c090,
+                roughness: 0.8
+            });
+
+            const step = new THREE.Mesh(stepGeometry, stepMaterial);
+            step.position.set(20, stepY, 20);
+            step.castShadow = true;
+            step.receiveShadow = true;
+            this.scene.add(step);
+        }
+
+        // Add a small entrance at the base of the pyramid
+        const entranceWidth = 2;
+        const entranceHeight = 3;
+        const entranceDepth = 2;
+
+        const entranceGeometry = new THREE.BoxGeometry(entranceWidth, entranceHeight, entranceDepth);
+        const entranceMaterial = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            roughness: 1.0
+        });
+
+        const entrance = new THREE.Mesh(entranceGeometry, entranceMaterial);
+        entrance.position.set(20, entranceHeight / 2, 20 + pyramidBase - entranceDepth / 2);
+        this.scene.add(entrance);
+    }
+
+    createTempleRuins() {
+        const templeGroup = new THREE.Group();
+        templeGroup.position.set(0, 0, 0);
+
+        // Create temple base
+        const baseGeometry = new THREE.BoxGeometry(20, 1, 15);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xd0d0d0,
+            roughness: 0.8
+        });
+
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.5;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        templeGroup.add(base);
+
+        // Create partial walls (to look ruined)
+        this.createRuinedWall(templeGroup, -9, 2, 0, 2, 5, 15);
+        this.createRuinedWall(templeGroup, 9, 2, 0, 2, 4, 15);
+        this.createRuinedWall(templeGroup, 0, 2, -7, 16, 3, 1);
+
+        // Add some fallen columns
+        for (let i = 0; i < 3; i++) {
+            const columnGeometry = new THREE.CylinderGeometry(0.7, 0.7, 6, 16);
+            const columnMaterial = new THREE.MeshStandardMaterial({
+                map: this.stoneTexture,
+                color: 0xe0e0e0,
+                roughness: 0.6
+            });
+
+            const column = new THREE.Mesh(columnGeometry, columnMaterial);
+
+            // Position randomly on the ground near the temple
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 5 + Math.random() * 8;
+            column.position.set(
+                Math.cos(angle) * distance,
+                0.7,
+                Math.sin(angle) * distance
+            );
+
+            // Rotate to look fallen
+            column.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+            column.rotation.z = (Math.random() - 0.5) * 0.3;
+
+            column.castShadow = true;
+            column.receiveShadow = true;
+            templeGroup.add(column);
+        }
+
+        this.scene.add(templeGroup);
+    }
+
+    createRuinedWall(group, x, y, z, width, height, depth) {
+        // Create a "ruined" wall by making it irregular at the top
+        const segments = 10;
+        const segmentWidth = width / segments;
+
+        for (let i = 0; i < segments; i++) {
+            // Randomize height for each segment, making it more likely to be ruined at edges
+            const distanceFromCenter = Math.abs(i - segments / 2) / (segments / 2);
+            const maxHeightReduction = height * 0.8;
+            const heightReduction = maxHeightReduction * distanceFromCenter * Math.random();
+            const segmentHeight = height - heightReduction;
+
+            if (segmentHeight <= 0) continue;
+
+            const segmentGeometry = new THREE.BoxGeometry(segmentWidth, segmentHeight, depth);
+            const segmentMaterial = new THREE.MeshStandardMaterial({
+                map: this.stoneTexture,
+                color: 0xd0d0d0,
+                roughness: 0.8
+            });
+
+            const segment = new THREE.Mesh(segmentGeometry, segmentMaterial);
+            segment.position.set(
+                x - width / 2 + segmentWidth / 2 + i * segmentWidth,
+                y + segmentHeight / 2,
+                z
+            );
+
+            segment.castShadow = true;
+            segment.receiveShadow = true;
+            group.add(segment);
+        }
+    }
+
+    createStonePillars() {
+        const pillarPositions = [
+            { x: -30, z: 20 },
+            { x: -25, z: 20 },
+            { x: -20, z: 20 }
+        ];
+
+        pillarPositions.forEach((pos, index) => {
+            // Only create some pillars to look ruined
+            if (index === 1 && Math.random() < 0.5) return;
+
+            const height = 8 + Math.random() * 2;
+            const pillarGeometry = new THREE.CylinderGeometry(1, 1, height, 16);
+            const pillarMaterial = new THREE.MeshStandardMaterial({
+                map: this.stoneTexture,
+                color: 0xe0e0e0,
+                roughness: 0.6
+            });
+
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            pillar.position.set(pos.x, height / 2, pos.z);
+
+            // Add slight random tilt to some pillars
+            if (Math.random() < 0.3) {
+                pillar.rotation.z = (Math.random() - 0.5) * 0.2;
+                pillar.rotation.x = (Math.random() - 0.5) * 0.2;
+            }
+
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            this.scene.add(pillar);
+
+            // Add a capital to the top of each pillar
+            this.createPillarCapital(pos.x, height, pos.z);
+        });
+    }
+
+    createPillarCapital(x, height, z) {
+        const capitalGeometry = new THREE.BoxGeometry(2.5, 0.8, 2.5);
+        const capitalMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xe8e8e8,
+            roughness: 0.6
+        });
+
+        const capital = new THREE.Mesh(capitalGeometry, capitalMaterial);
+        capital.position.set(x, height + 0.4, z);
+        capital.castShadow = true;
+        capital.receiveShadow = true;
+
+        this.scene.add(capital);
+    }
+
+    createAmbientElements() {
+        // Create scattered stones
+        for (let i = 0; i < 30; i++) {
+            const x = (Math.random() - 0.5) * 180;
+            const z = (Math.random() - 0.5) * 180;
+
+            // Don't place stones too close to other structures
+            const distanceToOasis = Math.sqrt((x + 15) * (x + 15) + (z + 15) * (z + 15));
+            const distanceToPyramid = Math.sqrt((x - 20) * (x - 20) + (z + 20) * (z + 20));
+            const distanceToTemple = Math.sqrt(x * x + z * z);
+
+            if (distanceToOasis > 10 && distanceToPyramid > 15 && distanceToTemple > 15) {
+                this.createStone(x, z);
+            }
+        }
+
+        // Create a few ancient statues
+        this.createStatue(-10, 10);
+        this.createStatue(10, -25);
+
+        // Create a small ancient wall
+        this.createAncientWall(-35, -15);
+    }
+
+    createStone(x, z) {
+        const size = 0.5 + Math.random() * 1.5;
+        const stoneGeometry = new THREE.SphereGeometry(size, 6, 6);
+        const stoneMaterial = new THREE.MeshStandardMaterial({
+            color: 0xc0c0c0,
+            roughness: 0.9
+        });
+
+        // Deform the geometry to make it look more like a natural stone
+        const vertices = stoneGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            vertices[i] += (Math.random() - 0.5) * 0.2 * size;
+            vertices[i + 1] += (Math.random() - 0.5) * 0.2 * size;
+            vertices[i + 2] += (Math.random() - 0.5) * 0.2 * size;
+        }
+
+        stoneGeometry.attributes.position.needsUpdate = true;
+        stoneGeometry.computeVertexNormals();
+
+        const stone = new THREE.Mesh(stoneGeometry, stoneMaterial);
+        stone.position.set(x, size * 0.5, z);
+        stone.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+
+        stone.castShadow = true;
+        stone.receiveShadow = true;
+        this.scene.add(stone);
+    }
+
+    createStatue(x, z) {
+        const statueGroup = new THREE.Group();
+        statueGroup.position.set(x, 0, z);
+
+        // Create base
+        const baseGeometry = new THREE.BoxGeometry(3, 1, 3);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xd8d8d8,
+            roughness: 0.7
+        });
+
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.5;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        statueGroup.add(base);
+
+        // Create a simplified Sphinx-like statue
+        const bodyGeometry = new THREE.BoxGeometry(2, 1.2, 1.5);
+        const bodyMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xe0e0e0,
+            roughness: 0.7
+        });
+
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.set(0, 1.6, 0);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        statueGroup.add(body);
+
+        // Create head
+        const headGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+        const headMaterial = new THREE.MeshStandardMaterial({
+            map: this.stoneTexture,
+            color: 0xe8e8e8,
+            roughness: 0.7
+        });
+
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.set(0, 2.3, 0.7);
+        head.castShadow = true;
+        head.receiveShadow = true;
+        statueGroup.add(head);
+
+        this.scene.add(statueGroup);
+    }
+
+    createAncientWall(x, z) {
+        const wallGroup = new THREE.Group();
+        wallGroup.position.set(x, 0, z);
+
+        // Create a long, low, ruined wall
+        const wallLength = 15;
+        const segments = 10;
+        const segmentLength = wallLength / segments;
+
+        for (let i = 0; i < segments; i++) {
+            // Randomize height and condition for each segment
+            const segmentHeight = 1 + Math.random() * 2;
+
+            // Skip some segments to look ruined
+            if (Math.random() < 0.3) continue;
+
+            const segmentGeometry = new THREE.BoxGeometry(segmentLength, segmentHeight, 1);
+            const segmentMaterial = new THREE.MeshStandardMaterial({
+                map: this.stoneTexture,
+                color: 0xc8c8c8,
+                roughness: 0.9
+            });
+
+            const segment = new THREE.Mesh(segmentGeometry, segmentMaterial);
+            segment.position.set(
+                -wallLength / 2 + segmentLength / 2 + i * segmentLength,
+                segmentHeight / 2,
+                0
+            );
+
+            // Add some rotation to make it look more ruined
+            segment.rotation.z = (Math.random() - 0.5) * 0.2;
+            segment.rotation.y = (Math.random() - 0.5) * 0.1;
+
+            segment.castShadow = true;
+            segment.receiveShadow = true;
+            wallGroup.add(segment);
+        }
+
+        this.scene.add(wallGroup);
+    }
+
+    placeTreasures() {
+        // Define treasure locations (some hidden, some visible)
+        const treasureLocations = [
+            // Inside the pyramid
+            { x: 20, y: 1, z: 20, hidden: true },
+            // Near temple ruins
+            { x: 5, y: 0.5, z: 3, hidden: false },
+            // Under palm tree near oasis
+            { x: -17, y: 0.5, z: -12, hidden: true },
+            // Behind a pillar
+            { x: -30, y: 0.5, z: 21, hidden: false },
+            // Inside ancient wall
+            { x: -32, y: 0.5, z: -15, hidden: true },
+            // Near the statue
+            { x: -8, y: 0.5, z: 12, hidden: false },
+            // Random in desert
+            { x: 35, y: 0.5, z: -25, hidden: false },
+            // Inside oasis
+            { x: -15, y: 0.2, z: -15, hidden: true }
+        ];
+
+        treasureLocations.forEach((loc, index) => {
+            this.createTreasure(loc.x, loc.y, loc.z, loc.hidden, index);
+        });
+
+        return this.treasures;
+    }
+
+    createTreasure(x, y, z, hidden, id) {
+        const treasureGroup = new THREE.Group();
+        treasureGroup.position.set(x, y, z);
+        treasureGroup.userData = {
+            isCollectable: true,
+            id: `treasure-${id}`,
+            hidden: hidden,
+            collected: false
+        };
+
+        // Create a treasure chest
+        const chestBaseGeometry = new THREE.BoxGeometry(1, 0.7, 0.7);
+        const chestLidGeometry = new THREE.BoxGeometry(1, 0.3, 0.7);
+
+        const chestMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8B4513,
+            roughness: 0.7
+        });
+
+        const chestTrimMaterial = new THREE.MeshStandardMaterial({
+            color: 0xD4AF37,
+            metalness: 0.7,
+            roughness: 0.3
+        });
+
+        // Chest base
+        const chestBase = new THREE.Mesh(chestBaseGeometry, chestMaterial);
+        
