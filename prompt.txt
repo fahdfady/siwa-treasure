@@ -1,3 +1,6 @@
+help me create a simple 3D Three.js multiplayer treasure hunt game with an Egyptian theme set in Siwa.
+
+the folder structure
 siwa-treasure/
 │
 ├── public/                  # Static files served to clients
